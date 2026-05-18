@@ -1,9 +1,25 @@
+from datetime import datetime
 from uuid import uuid4
+from zoneinfo import ZoneInfo
 
 from langchain_core.messages import AIMessage, HumanMessage
 from langgraph.types import Command
 
 from src.agent.graph import graph
+
+
+CLI_TIMEZONE = "Europe/Istanbul"
+CLI_LOCALE = "tr-TR"
+
+
+def browser_context() -> dict:
+    now = datetime.now(ZoneInfo(CLI_TIMEZONE))
+
+    return {
+        "current_datetime": now.isoformat(),
+        "timezone": CLI_TIMEZONE,
+        "locale": CLI_LOCALE,
+    }
 
 
 def get_interrupt_question(result: dict) -> str | None:
@@ -46,7 +62,10 @@ def main() -> None:
             return
 
         result = graph.invoke(
-            {"messages": [HumanMessage(content=user_message)]},
+            {
+                "messages": [HumanMessage(content=user_message)],
+                **browser_context(),
+            },
             config=config,
         )
 

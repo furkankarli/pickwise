@@ -6,6 +6,9 @@ from langgraph.graph.message import add_messages
 
 class AgentState(TypedDict):
     messages: Annotated[list[BaseMessage], add_messages]
+    current_datetime: str | None
+    timezone: str | None
+    locale: str | None
     category: str | None
     criteria: dict
     missing_criteria: list[str]

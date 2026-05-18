@@ -43,6 +43,14 @@ def get_last_user_message(state: AgentState) -> str:
     return ""
 
 
+def time_context(state: AgentState) -> str:
+    current_datetime = state.get("current_datetime") or "unknown"
+    timezone = state.get("timezone") or "unknown"
+    locale = state.get("locale") or "unknown"
+
+    return f"Current browser datetime: {current_datetime}\nTimezone: {timezone}\nLocale: {locale}"
+
+
 def extract_urls(value: object) -> list[str]:
     urls = []
 
@@ -66,6 +74,8 @@ def extract_urls(value: object) -> list[str]:
 def analyze_intent(state: AgentState) -> AgentState:
     user_message = get_last_user_message(state)
     prompt = f"""Analyze the user's shopping request.
+
+{time_context(state)}
 
 User message:
 {user_message}
@@ -126,6 +136,8 @@ def extract_info(state: AgentState) -> AgentState:
     prompt = f"""
 Update the current shopping criteria.
 
+{time_context(state)}
+
 Current category:
 {state.get("category")}
 
@@ -169,6 +181,8 @@ def generate_query(state: AgentState) -> AgentState:
     prompt = f"""
 Generate an effective Turkish search query to search for products on the internet based on the following shopping criteria.
 
+{time_context(state)}
+
 Category:
 {state.get("category")}
 
@@ -179,6 +193,7 @@ Rules:
 - Return only the search query.
 - Do not write any explanations.
 - It should be focused on e-commerce and price comparison.
+- Include freshness terms when the user is asking about current prices, stock, stores, or availability.
 """
 
     response = llm.invoke(prompt)
@@ -200,6 +215,8 @@ def extract_products(state: AgentState) -> AgentState:
     prompt = f"""
 Select the most suitable products from the following web page contents based on the user's shopping criteria.
 
+{time_context(state)}
+
 Category:
 {state.get("category")}
 
@@ -212,6 +229,7 @@ Web contents:
 Response format:
 - Recommend a maximum of {MAX_RECOMMENDATIONS} products.
 - For each product, provide the name, why it is suitable, and price and link information if available.
+- Treat prices, stock, delivery, and seller availability as time-sensitive.
 - Do not state prices you are unsure of as definitive facts.
 - Keep the answer useful for follow-up comparisons.
 """
@@ -239,6 +257,8 @@ def plan_follow_up(state: AgentState) -> AgentState:
     user_message = get_last_user_message(state)
     prompt = f"""
 Decide whether the user's follow-up needs a fresh web search.
+
+{time_context(state)}
 
 User follow-up:
 {user_message}
@@ -269,6 +289,7 @@ between products already recommended.
 Rules:
 - Return only JSON.
 - If fresh_search is selected, write a concise Turkish search query.
+- Use the browser datetime and timezone when reasoning about words like now, today, current, latest, or this week.
 """
     response = llm.invoke(prompt)
     data = parse_json_response(response.content)
@@ -310,6 +331,8 @@ def answer_follow_up(state: AgentState) -> AgentState:
     prompt = f"""
 You are continuing the same shopping assistant conversation.
 
+{time_context(state)}
+
 User's latest follow-up:
 {user_message}
 
@@ -333,6 +356,7 @@ Rules:
 - If the user asks for a comparison, compare the recommended options clearly.
 - If the user changes an important criterion, explain how that changes the recommendation.
 - If fresh search data is available, use it and say when a price or availability should be verified on the seller page.
+- Treat words like now, today, current, latest, and this week according to the browser datetime above.
 - If the existing data is not enough for the follow-up, ask one focused question.
 - Do not restart the product discovery flow unless the user clearly asks for a new search.
 """
