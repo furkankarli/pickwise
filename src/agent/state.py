@@ -1,0 +1,16 @@
+from typing import Annotated, TypedDict
+
+from langchain_core.messages import BaseMessage
+from langgraph.graph.message import add_messages
+
+
+class AgentState(TypedDict):
+    messages: Annotated[list[BaseMessage], add_messages]
+    category: str | None
+    criteria: dict
+    missing_criteria: list[str]
+    current_question: str | None
+    search_query: str | None
+    search_results: list[dict]
+    scraped_contents: list[str]
+    final_answer: str | None
