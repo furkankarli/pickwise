@@ -9,7 +9,10 @@ from src.agent.nodes import (
     extract_info,
     extract_products,
     generate_query,
+    plan_follow_up,
+    route_follow_up,
     route_start,
+    search_follow_up,
 )
 from src.agent.state import AgentState
 
@@ -22,13 +25,15 @@ builder.add_node("ask_human", ask_human)
 builder.add_node("extract_info", extract_info)
 builder.add_node("generate_query", generate_query)
 builder.add_node("extract_products", extract_products)
+builder.add_node("plan_follow_up", plan_follow_up)
+builder.add_node("search_follow_up", search_follow_up)
 
 builder.add_conditional_edges(
     START,
     route_start,
     {
         "analyze_intent": "analyze_intent",
-        "answer_follow_up": "answer_follow_up",
+        "plan_follow_up": "plan_follow_up",
     },
 )
 
@@ -54,6 +59,15 @@ builder.add_conditional_edges(
 
 builder.add_edge("generate_query", "extract_products")
 builder.add_edge("extract_products", END)
+builder.add_conditional_edges(
+    "plan_follow_up",
+    route_follow_up,
+    {
+        "answer_follow_up": "answer_follow_up",
+        "search_follow_up": "search_follow_up",
+    },
+)
+builder.add_edge("search_follow_up", "answer_follow_up")
 builder.add_edge("answer_follow_up", END)
 
 checkpointer = InMemorySaver()

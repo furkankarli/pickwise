@@ -13,6 +13,8 @@ class AgentState(TypedDict):
     question_count: int
     max_questions: int
     search_query: str | None
+    follow_up_route: str | None
+    follow_up_search_query: str | None
     search_results: list[dict]
     scraped_contents: list[str]
     recommended_products: str | None

@@ -230,9 +230,79 @@ Response format:
 
 def route_start(state: AgentState) -> str:
     if state.get("final_answer"):
-        return "answer_follow_up"
+        return "plan_follow_up"
 
     return "analyze_intent"
+
+
+def plan_follow_up(state: AgentState) -> AgentState:
+    user_message = get_last_user_message(state)
+    prompt = f"""
+Decide whether the user's follow-up needs a fresh web search.
+
+User follow-up:
+{user_message}
+
+Current category:
+{state.get("category")}
+
+Current criteria:
+{json.dumps(state.get("criteria", {}), ensure_ascii=False)}
+
+Known recommendations:
+{state.get("recommended_products") or state.get("final_answer")}
+
+Respond in JSON format:
+{{
+  "route": "fresh_search" | "answer_from_context",
+  "query": "search query to run when route is fresh_search, otherwise null",
+  "reason": "short reason"
+}}
+
+Use fresh_search when the user asks about current price, stock, store-specific availability,
+marketplace comparisons, links, coupons, recent reviews, or asks to check a product/site that
+was not covered by the previous search.
+
+Use answer_from_context for comparisons, explanations, trade-offs, setup advice, or choosing
+between products already recommended.
+
+Rules:
+- Return only JSON.
+- If fresh_search is selected, write a concise Turkish search query.
+"""
+    response = llm.invoke(prompt)
+    data = parse_json_response(response.content)
+
+    if data.get("route") == "fresh_search":
+        return {
+            **state,
+            "follow_up_route": "search_follow_up",
+            "follow_up_search_query": data.get("query") or user_message,
+        }
+
+    return {
+        **state,
+        "follow_up_route": "answer_follow_up",
+        "follow_up_search_query": None,
+    }
+
+
+def route_follow_up(state: AgentState) -> str:
+    return state.get("follow_up_route") or "answer_follow_up"
+
+
+def search_follow_up(state: AgentState) -> AgentState:
+    query = state.get("follow_up_search_query") or get_last_user_message(state)
+    search_results = tavily_search.invoke({"query": query})
+    urls = extract_urls(search_results)
+    scraped_contents = jina_scraper.invoke({"urls": urls[:3]})
+
+    return {
+        **state,
+        "follow_up_search_query": query,
+        "search_results": search_results,
+        "scraped_contents": [*state.get("scraped_contents", []), *scraped_contents],
+    }
 
 
 def answer_follow_up(state: AgentState) -> AgentState:
@@ -255,10 +325,14 @@ Previously recommended products:
 Scraped page contents:
 {json.dumps(state.get("scraped_contents", []), ensure_ascii=False)}
 
+Fresh follow-up search query, if any:
+{state.get("follow_up_search_query")}
+
 Rules:
 - Answer as part of the same ongoing chat.
 - If the user asks for a comparison, compare the recommended options clearly.
 - If the user changes an important criterion, explain how that changes the recommendation.
+- If fresh search data is available, use it and say when a price or availability should be verified on the seller page.
 - If the existing data is not enough for the follow-up, ask one focused question.
 - Do not restart the product discovery flow unless the user clearly asks for a new search.
 """
