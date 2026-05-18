@@ -11,6 +11,8 @@ from src.tools.scraper_tool import jina_scraper
 from src.tools.search_tool import tavily_search
 
 llm = ChatGoogleGenerativeAI(model="gemini-3.1-flash-lite", google_api_key=settings.google_api_key)
+DEFAULT_MAX_QUESTIONS = 8
+MAX_RECOMMENDATIONS = 5
 
 
 def content_to_text(content: str | list) -> str:
@@ -82,7 +84,7 @@ Rules:
 - Return only JSON.
 - Determine the category and criteria yourself.
 - If the user has already provided information, do not include it in missing_criteria.
-- Generate a maximum of 5 missing criteria.
+- Generate a maximum of 8 missing criteria, ordered by importance.
 - current_question should only be related to the first missing criterion.
 """
     response = llm.invoke(prompt)
@@ -94,10 +96,15 @@ Rules:
         "criteria": data.get("criteria", {}),
         "missing_criteria": data.get("missing_criteria", []),
         "current_question": data.get("current_question"),
+        "question_count": state.get("question_count", 0),
+        "max_questions": state.get("max_questions", DEFAULT_MAX_QUESTIONS),
     }
 
 def analyze_state(state: AgentState) -> str:
-    if state.get("missing_criteria"):
+    if state.get("missing_criteria") and state.get("question_count", 0) < state.get(
+        "max_questions",
+        DEFAULT_MAX_QUESTIONS,
+    ):
         return "ask_human"
     return "generate_query"
 
@@ -107,6 +114,7 @@ def ask_human(state: AgentState) -> AgentState:
 
     return {
         **state,
+        "question_count": state.get("question_count", 0) + 1,
         "messages": [
             AIMessage(content=question),
             HumanMessage(content=str(answer)),
@@ -143,6 +151,7 @@ Rules:
 - Return only JSON.
 - Add the information you understood from the user's answer to criteria.
 - Remove completed criteria from missing_criteria.
+- Do not add new missing criteria unless they are essential for making a useful recommendation.
 - If no criteria are missing, current_question must be null.
 """
 
@@ -201,16 +210,63 @@ Web contents:
 {json.dumps(scraped_contents, ensure_ascii=False)}
 
 Response format:
-- Recommend a maximum of 3 products.
+- Recommend a maximum of {MAX_RECOMMENDATIONS} products.
 - For each product, provide the name, why it is suitable, and price and link information if available.
 - Do not state prices you are unsure of as definitive facts.
+- Keep the answer useful for follow-up comparisons.
 """
 
     response = llm.invoke(prompt)
+    answer = content_to_text(response.content)
 
     return {
         **state,
         "scraped_contents": scraped_contents,
-        "final_answer": content_to_text(response.content),
-        "messages": [AIMessage(content=content_to_text(response.content))],
+        "recommended_products": answer,
+        "final_answer": answer,
+        "messages": [AIMessage(content=answer)],
+    }
+
+
+def route_start(state: AgentState) -> str:
+    if state.get("final_answer"):
+        return "answer_follow_up"
+
+    return "analyze_intent"
+
+
+def answer_follow_up(state: AgentState) -> AgentState:
+    user_message = get_last_user_message(state)
+    prompt = f"""
+You are continuing the same shopping assistant conversation.
+
+User's latest follow-up:
+{user_message}
+
+Current category:
+{state.get("category")}
+
+Current criteria:
+{json.dumps(state.get("criteria", {}), ensure_ascii=False)}
+
+Previously recommended products:
+{state.get("recommended_products") or state.get("final_answer")}
+
+Scraped page contents:
+{json.dumps(state.get("scraped_contents", []), ensure_ascii=False)}
+
+Rules:
+- Answer as part of the same ongoing chat.
+- If the user asks for a comparison, compare the recommended options clearly.
+- If the user changes an important criterion, explain how that changes the recommendation.
+- If the existing data is not enough for the follow-up, ask one focused question.
+- Do not restart the product discovery flow unless the user clearly asks for a new search.
+"""
+    response = llm.invoke(prompt)
+    answer = content_to_text(response.content)
+
+    return {
+        **state,
+        "final_answer": answer,
+        "messages": [AIMessage(content=answer)],
     }

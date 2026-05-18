@@ -10,7 +10,10 @@ class AgentState(TypedDict):
     criteria: dict
     missing_criteria: list[str]
     current_question: str | None
+    question_count: int
+    max_questions: int
     search_query: str | None
     search_results: list[dict]
     scraped_contents: list[str]
+    recommended_products: str | None
     final_answer: str | None
