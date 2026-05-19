@@ -185,9 +185,11 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
+
   html {
     @apply font-sans;
   }
@@ -266,7 +268,7 @@
     @apply max-w-full overflow-hidden;
   }
 
-  .pickwise-message-response [data-streamdown="table-wrapper"] > div:last-child {
+  .pickwise-message-response [data-streamdown="table-wrapper"]>div:last-child {
     @apply max-w-full overflow-x-auto rounded-[1.15rem] border border-[var(--pickwise-glass-border)] bg-[var(--pickwise-page)];
   }
 
@@ -292,25 +294,63 @@
   }
 
   [data-streamdown="link-safety-modal"] {
-    background: color-mix(in srgb, var(--pickwise-page) 55%, transparent);
-    @apply backdrop-blur-xl;
+    background: color-mix(in srgb, var(--pickwise-page) 60%, transparent);
+    @apply backdrop-blur-2xl;
   }
 
-  [data-streamdown="link-safety-modal"] > div {
-    @apply rounded-[1.5rem] border border-[var(--pickwise-glass-border)] bg-[var(--pickwise-glass)] text-[var(--pickwise-text)] shadow-[var(--pickwise-glass-shadow)] backdrop-blur-2xl;
+  [data-streamdown="link-safety-modal"]>div {
+    @apply mx-5 max-w-[26rem] rounded-[1.75rem] border border-[var(--pickwise-glass-border)] p-7 shadow-[var(--pickwise-glass-shadow)] backdrop-blur-2xl;
+    background: color-mix(in srgb, var(--pickwise-glass) 85%, var(--pickwise-page));
   }
 
-  [data-streamdown="link-safety-modal"] p,
-  [data-streamdown="link-safety-modal"] button {
-    @apply text-[var(--pickwise-text)];
+  [data-streamdown="link-safety-modal"]>div>div:first-of-type>div:first-child {
+    @apply gap-3 text-lg font-bold text-[var(--pickwise-text)];
   }
 
-  [data-streamdown="link-safety-modal"] button {
-    @apply rounded-full transition hover:bg-[var(--pickwise-glass-strong)];
+  [data-streamdown="link-safety-modal"]>div>div:first-of-type>div:first-child svg {
+    @apply size-5 text-[var(--pickwise-blue)];
+  }
+
+  [data-streamdown="link-safety-modal"] p {
+    @apply text-sm text-[var(--pickwise-text)] opacity-65;
   }
 
   [data-streamdown="link-safety-modal"] [class*="font-mono"] {
-    @apply rounded-[1rem] bg-[var(--pickwise-page)] text-[var(--pickwise-text)];
+    @apply rounded-[1.15rem] border border-[var(--pickwise-glass-border)] bg-[var(--pickwise-page)] px-4 py-3.5 text-[13px] leading-5 text-[var(--pickwise-text)] opacity-80;
+    word-break: break-all;
+  }
+
+  [data-streamdown="link-safety-modal"]>div>button:first-child {
+    @apply top-5 right-5 rounded-xl border border-transparent p-1.5 text-[var(--pickwise-text)] opacity-50 transition-all hover:border-[var(--pickwise-glass-border)] hover:bg-[var(--pickwise-glass-strong)] hover:opacity-100;
+  }
+
+  [data-streamdown="link-safety-modal"]>div>div:last-child {
+    @apply mt-1 flex gap-3;
+  }
+
+  [data-streamdown="link-safety-modal"]>div>div:last-child>button {
+    @apply h-11 rounded-[0.9rem] text-[13.5px] font-semibold tracking-wide transition-all duration-200;
+  }
+
+  [data-streamdown="link-safety-modal"]>div>div:last-child>button:first-child {
+    @apply border border-[var(--pickwise-glass-border)] bg-[var(--pickwise-glass)] text-[var(--pickwise-text)] hover:border-[var(--pickwise-blue)] hover:bg-[var(--pickwise-glass-strong)];
+  }
+
+  [data-streamdown="link-safety-modal"]>div>div:last-child>button:last-child {
+    background: linear-gradient(135deg, var(--pickwise-blue), var(--pickwise-cyan));
+    @apply border-none text-white shadow-[var(--pickwise-action-shadow)] hover:brightness-110;
+  }
+
+  [data-streamdown="link-safety-modal"]>div>div:last-child>button svg {
+    @apply size-4 shrink-0;
+  }
+
+  .pickwise-message-response [data-streamdown="image-wrapper"] {
+    @apply my-4 overflow-hidden rounded-[1.25rem] border border-[var(--pickwise-glass-border)] bg-[var(--pickwise-glass)] shadow-sm;
+  }
+
+  .pickwise-message-response [data-streamdown="image"] {
+    @apply max-h-64 w-full rounded-[1.25rem] object-contain;
   }
 
   [data-streamdown="table-fullscreen"] {
