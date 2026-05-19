@@ -1,0 +1,15 @@
+{
+  "name": "pickwise",
+  "version": "0.1.0",
+  "private": true,
+  "description": "BTK Akademi Hackathon 2026 için yapay zeka destekli alışveriş asistanı monoreposu.",
+  "scripts": {
+    "dev:frontend": "pnpm --dir frontend dev",
+    "build:frontend": "pnpm --dir frontend build",
+    "lint:frontend": "pnpm --dir frontend lint",
+    "dev:backend": "cd backend && uv run fastapi dev main.py",
+    "start:backend": "cd backend && uv run fastapi run main.py",
+    "install:frontend": "pnpm --dir frontend install",
+    "install:backend": "cd backend && uv sync"
+  }
+}
