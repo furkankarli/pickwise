@@ -155,11 +155,4 @@ GET /health
 
 Pickwise, BTK Akademi Hackathon 2026 kapsamında alışveriş kararlarını daha hızlı, bilinçli ve güncel veriye dayalı hale getirmek için geliştirildi. Projenin ana fikri, klasik "en iyi ürünler" listeleri yerine kullanıcının gerçek ihtiyacını anlayan ve buna göre canlı araştırma yapan bir asistan deneyimi sunmaktır.
 
-## GitHub'a Yüklemeden Önce
-
-- `backend/.env` dosyasını commit etme.
-- Kök dizinde tek bir Git deposu kullan.
-- `frontend/node_modules`, `frontend/.next`, `backend/.venv` gibi üretilen klasörleri commit etme.
-- API anahtarlarını GitHub Secrets veya deployment platformunun environment ayarlarıyla yönet.
-- Eğer `frontend/` ve `backend/` içinde ayrı `.git` klasörleri varsa, GitHub'a tek monorepo olarak yüklemeden önce bu iç Git depolarını kaldırıp kökte yeni bir Git deposu başlat.
 
