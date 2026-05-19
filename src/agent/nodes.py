@@ -264,6 +264,8 @@ Web contents:
 Response format:
 - Recommend a maximum of {MAX_RECOMMENDATIONS} products.
 - For each product, provide the name, why it is suitable, and price and link information if available.
+- If a product image URL is available in the scraped content, include it as a markdown image right after the product name, like: ![Product Name](image_url)
+- Only use image URLs that appear in the scraped content. Do not invent or guess image URLs.
 - Treat prices, stock, delivery, and seller availability as time-sensitive.
 - Do not state prices you are unsure of as definitive facts.
 - Keep the answer useful for follow-up comparisons.
