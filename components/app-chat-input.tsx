@@ -1,0 +1,51 @@
+"use client";
+
+import { ArrowUp, Sparkles } from "lucide-react";
+import { type FormEvent, useCallback, useRef } from "react";
+
+export function AppChatInput() {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const resizeTextarea = useCallback(() => {
+    const textarea = textareaRef.current;
+
+    if (!textarea) {
+      return;
+    }
+
+    textarea.style.height = "0px";
+    textarea.style.height = `${Math.min(textarea.scrollHeight, 160)}px`;
+  }, []);
+
+  const handleSubmit = useCallback((event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+  }, []);
+
+  return (
+    <div className="pointer-events-none fixed inset-x-0 bottom-4 z-50 flex justify-center px-4 sm:bottom-6">
+      <form
+        className="pointer-events-auto flex min-h-16 w-full max-w-3xl items-end gap-3 rounded-[2rem] border border-[var(--pickwise-glass-border)] bg-[var(--pickwise-glass)] px-4 py-3 shadow-[var(--pickwise-glass-shadow)] backdrop-blur-2xl supports-[backdrop-filter]:bg-[var(--pickwise-glass)]"
+        onSubmit={handleSubmit}
+      >
+        <div className="grid size-10 shrink-0 place-items-center rounded-full text-[var(--pickwise-blue)]">
+          <Sparkles className="size-4" aria-hidden="true" />
+        </div>
+        <textarea
+          aria-label="Message"
+          className="max-h-40 min-h-10 min-w-0 flex-1 resize-none overflow-y-auto bg-transparent py-2 text-base font-medium leading-6 text-[var(--pickwise-text)] outline-none placeholder:text-[color-mix(in_srgb,var(--pickwise-text)_45%,transparent)]"
+          onInput={resizeTextarea}
+          placeholder="Ne almak istiyorsun?"
+          ref={textareaRef}
+          rows={1}
+        />
+        <button
+          aria-label="Send message"
+          className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--pickwise-navy)] text-[var(--pickwise-page)] shadow-[var(--pickwise-action-shadow)] transition hover:bg-[var(--pickwise-blue)]"
+          type="submit"
+        >
+          <ArrowUp className="size-5" aria-hidden="true" />
+        </button>
+      </form>
+    </div>
+  );
+}
