@@ -100,6 +100,12 @@ def stream_graph(request: ChatStreamRequest) -> Generator[str, None, None]:
 
                 yield sse("status", {"node": node_name})
 
+                if node_name == "guardrail_warning":
+                    messages = update.get("messages", [])
+                    if messages:
+                        yield sse("message", {"content": messages[-1].content})
+                    continue
+
                 final_answer = update.get("final_answer")
                 if final_answer and node_name in {"extract_products", "answer_follow_up"}:
                     yield sse("message", {"content": final_answer})

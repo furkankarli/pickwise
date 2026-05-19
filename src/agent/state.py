@@ -10,6 +10,8 @@ class AgentState(TypedDict):
     timezone: str | None
     locale: str | None
     conversation_language: str | None
+    is_valid_shopping_request: bool | None
+    guardrail_warning_message: str | None
     category: str | None
     criteria: dict
     missing_criteria: list[str]
