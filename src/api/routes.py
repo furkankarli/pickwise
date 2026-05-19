@@ -5,7 +5,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
+from langchain_core.messages import BaseMessage, HumanMessage
 from langgraph.types import Command
 from pydantic import BaseModel, Field
 
@@ -60,16 +60,6 @@ def get_interrupt_question(chunk: dict[str, Any]) -> str | None:
     return str(value)
 
 
-def get_latest_ai_message(update: dict[str, Any]) -> str | None:
-    messages = update.get("messages", [])
-    ai_messages = [message for message in messages if isinstance(message, AIMessage)]
-
-    if not ai_messages:
-        return None
-
-    return str(ai_messages[-1].content)
-
-
 def has_pending_interrupt(config: dict[str, Any]) -> bool:
     snapshot = graph.get_state(config)
     return bool(snapshot.interrupts)
@@ -111,13 +101,9 @@ def stream_graph(request: ChatStreamRequest) -> Generator[str, None, None]:
                 yield sse("status", {"node": node_name})
 
                 final_answer = update.get("final_answer")
-                if final_answer:
+                if final_answer and node_name in {"extract_products", "answer_follow_up"}:
                     yield sse("message", {"content": final_answer})
                     continue
-
-                ai_message = get_latest_ai_message(update)
-                if ai_message:
-                    yield sse("message", {"content": ai_message})
 
         yield sse("done", {"thread_id": thread_id})
 

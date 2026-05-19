@@ -9,6 +9,7 @@ class AgentState(TypedDict):
     current_datetime: str | None
     timezone: str | None
     locale: str | None
+    conversation_language: str | None
     category: str | None
     criteria: dict
     missing_criteria: list[str]
