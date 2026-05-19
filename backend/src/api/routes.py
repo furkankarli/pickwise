@@ -1,0 +1,142 @@
+import json
+from collections.abc import Generator
+from typing import Any
+from uuid import uuid4
+
+from fastapi import APIRouter
+from fastapi.responses import StreamingResponse
+from langchain_core.messages import BaseMessage, HumanMessage
+from langgraph.types import Command
+from pydantic import BaseModel, Field
+
+from src.agent.graph import graph
+from src.api.stream_events import SEARCH_NODES, search_payload, status_payload
+
+
+router = APIRouter(prefix="/api")
+
+
+class ChatStreamRequest(BaseModel):
+    message: str = Field(min_length=1)
+    thread_id: str | None = None
+    current_datetime: str | None = None
+    timezone: str | None = None
+    locale: str | None = None
+
+
+def sse(event: str, data: dict[str, Any]) -> str:
+    payload = json.dumps(data, ensure_ascii=False)
+    return f"event: {event}\ndata: {payload}\n\n"
+
+
+def serialize_message(message: BaseMessage) -> dict[str, Any]:
+    return {
+        "type": message.type,
+        "content": message.content,
+    }
+
+
+def serialize_value(value: Any) -> Any:
+    if isinstance(value, BaseMessage):
+        return serialize_message(value)
+
+    if isinstance(value, list):
+        return [serialize_value(item) for item in value]
+
+    if isinstance(value, dict):
+        return {key: serialize_value(item) for key, item in value.items()}
+
+    return value
+
+
+def get_interrupt_question(chunk: dict[str, Any]) -> str | None:
+    interrupts = chunk.get("__interrupt__")
+    if not interrupts:
+        return None
+
+    value = interrupts[0].value
+    if isinstance(value, dict):
+        return value.get("question")
+
+    return str(value)
+
+
+def has_pending_interrupt(config: dict[str, Any]) -> bool:
+    snapshot = graph.get_state(config)
+    return bool(snapshot.interrupts)
+
+
+def graph_input(request: ChatStreamRequest, config: dict[str, Any]) -> dict[str, Any] | Command:
+    if has_pending_interrupt(config):
+        return Command(resume=request.message)
+
+    return {
+        "messages": [HumanMessage(content=request.message)],
+        "current_datetime": request.current_datetime,
+        "timezone": request.timezone,
+        "locale": request.locale,
+    }
+
+
+def stream_graph(request: ChatStreamRequest) -> Generator[str, None, None]:
+    thread_id = request.thread_id or str(uuid4())
+    config = {"configurable": {"thread_id": thread_id}}
+
+    yield sse("thread", {"thread_id": thread_id})
+
+    try:
+        for chunk in graph.stream(
+            graph_input(request, config),
+            config=config,
+            stream_mode="updates",
+        ):
+            question = get_interrupt_question(chunk)
+            if question:
+                yield sse("interrupt", {"question": question})
+                continue
+
+            for node_name, update in chunk.items():
+                if not isinstance(update, dict):
+                    continue
+
+                yield sse("status", status_payload(node_name))
+
+                if node_name in SEARCH_NODES:
+                    search_event = search_payload(update)
+                    if search_event:
+                        yield sse("search", search_event)
+
+                if node_name == "guardrail_warning":
+                    messages = update.get("messages", [])
+                    if messages:
+                        yield sse("message", {"content": messages[-1].content})
+                    continue
+
+                final_answer = update.get("final_answer")
+                if final_answer and node_name in {"extract_products", "answer_follow_up"}:
+                    yield sse("message", {"content": final_answer})
+                    continue
+
+        yield sse("done", {"thread_id": thread_id})
+
+    except Exception as exc:
+        yield sse(
+            "error",
+            {
+                "message": str(exc),
+                "type": exc.__class__.__name__,
+            },
+        )
+
+
+@router.post("/chat/stream")
+def chat_stream(request: ChatStreamRequest) -> StreamingResponse:
+    return StreamingResponse(
+        stream_graph(request),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
