@@ -43,6 +43,7 @@ export function AppChatInput({ disabled = false, onSubmit }: AppChatInputProps) 
       if (textarea) {
         textarea.value = "";
         textarea.style.height = "";
+        textarea.focus();
       }
     },
     [disabled, onSubmit]
@@ -71,7 +72,6 @@ export function AppChatInput({ disabled = false, onSubmit }: AppChatInputProps) 
         </div>
         <textarea
           aria-label="Message"
-          disabled={disabled}
           className="max-h-40 min-h-10 min-w-0 flex-1 resize-none overflow-y-auto bg-transparent py-2 text-base font-medium leading-6 text-[var(--pickwise-text)] outline-none placeholder:text-[color-mix(in_srgb,var(--pickwise-text)_45%,transparent)]"
           onKeyDown={handleKeyDown}
           onInput={resizeTextarea}

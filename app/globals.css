@@ -192,3 +192,128 @@
     @apply font-sans;
   }
 }
+
+@layer components {
+  .pickwise-message-response {
+    @apply max-w-full text-[15px] leading-7;
+  }
+
+  .pickwise-message-response [data-streamdown="heading-1"],
+  .pickwise-message-response [data-streamdown="heading-2"],
+  .pickwise-message-response [data-streamdown="heading-3"] {
+    @apply mt-6 mb-3 font-bold text-[var(--pickwise-text)];
+  }
+
+  .pickwise-message-response [data-streamdown="heading-1"] {
+    @apply text-2xl;
+  }
+
+  .pickwise-message-response [data-streamdown="heading-2"] {
+    @apply text-xl;
+  }
+
+  .pickwise-message-response [data-streamdown="heading-3"] {
+    @apply text-lg;
+  }
+
+  .pickwise-message-response [data-streamdown="link"] {
+    @apply text-[var(--pickwise-blue)] underline-offset-4 transition hover:text-[var(--pickwise-cyan)];
+  }
+
+  .pickwise-message-response [data-streamdown="unordered-list"],
+  .pickwise-message-response [data-streamdown="ordered-list"] {
+    @apply my-3 list-outside pl-5;
+  }
+
+  .pickwise-message-response [data-streamdown="list-item"] {
+    @apply py-1;
+  }
+
+  .pickwise-message-response [data-streamdown="blockquote"] {
+    @apply my-4 rounded-[1.25rem] border-l-2 border-[var(--pickwise-blue)] bg-[var(--pickwise-glass)] px-4 py-3 text-[var(--pickwise-text)] not-italic;
+  }
+
+  .pickwise-message-response [data-streamdown="inline-code"] {
+    @apply rounded-lg bg-[var(--pickwise-glass)] px-1.5 py-0.5 text-[0.92em] text-[var(--pickwise-text)];
+  }
+
+  .pickwise-message-response [data-streamdown="code-block"],
+  .pickwise-message-response [data-streamdown="mermaid-block"],
+  .pickwise-message-response [data-streamdown="table-wrapper"] {
+    @apply my-5 rounded-[1.5rem] border border-[var(--pickwise-glass-border)] bg-[var(--pickwise-glass)] p-2 shadow-none backdrop-blur-2xl;
+  }
+
+  .pickwise-message-response [data-streamdown="code-block-body"] {
+    @apply rounded-[1.15rem] border border-[var(--pickwise-glass-border)] bg-[var(--pickwise-page)] p-4 text-sm;
+  }
+
+  .pickwise-message-response [data-streamdown="code-block-header"] {
+    @apply px-2 text-[var(--pickwise-blue)];
+  }
+
+  .pickwise-message-response [data-streamdown="code-block-actions"],
+  .pickwise-message-response [data-streamdown="mermaid-block-actions"] {
+    @apply rounded-full border border-[var(--pickwise-glass-border)] bg-[var(--pickwise-glass)] text-[var(--pickwise-blue)] backdrop-blur-2xl;
+  }
+
+  .pickwise-message-response [data-streamdown="code-block-copy-button"],
+  .pickwise-message-response [data-streamdown="code-block-download-button"],
+  .pickwise-message-response [data-streamdown="table-wrapper"] button {
+    @apply rounded-full text-[var(--pickwise-blue)] transition hover:bg-[var(--pickwise-glass-strong)] hover:text-[var(--pickwise-cyan)];
+  }
+
+  .pickwise-message-response [data-streamdown="table-wrapper"] {
+    @apply max-w-full overflow-hidden;
+  }
+
+  .pickwise-message-response [data-streamdown="table-wrapper"] > div:last-child {
+    @apply max-w-full overflow-x-auto rounded-[1.15rem] border border-[var(--pickwise-glass-border)] bg-[var(--pickwise-page)];
+  }
+
+  .pickwise-message-response [data-streamdown="table"] {
+    @apply min-w-[42rem] border-separate border-spacing-0 text-sm;
+  }
+
+  .pickwise-message-response [data-streamdown="table-header"] {
+    @apply bg-[var(--pickwise-glass)];
+  }
+
+  .pickwise-message-response [data-streamdown="table-header-cell"],
+  .pickwise-message-response [data-streamdown="table-cell"] {
+    @apply border-b border-[var(--pickwise-glass-border)] px-4 py-3 text-left align-top;
+  }
+
+  .pickwise-message-response [data-streamdown="table-header-cell"] {
+    @apply font-bold text-[var(--pickwise-text)];
+  }
+
+  .pickwise-message-response [data-streamdown="table-cell"] {
+    @apply text-[var(--pickwise-text)];
+  }
+
+  [data-streamdown="link-safety-modal"] {
+    background: color-mix(in srgb, var(--pickwise-page) 55%, transparent);
+    @apply backdrop-blur-xl;
+  }
+
+  [data-streamdown="link-safety-modal"] > div {
+    @apply rounded-[1.5rem] border border-[var(--pickwise-glass-border)] bg-[var(--pickwise-glass)] text-[var(--pickwise-text)] shadow-[var(--pickwise-glass-shadow)] backdrop-blur-2xl;
+  }
+
+  [data-streamdown="link-safety-modal"] p,
+  [data-streamdown="link-safety-modal"] button {
+    @apply text-[var(--pickwise-text)];
+  }
+
+  [data-streamdown="link-safety-modal"] button {
+    @apply rounded-full transition hover:bg-[var(--pickwise-glass-strong)];
+  }
+
+  [data-streamdown="link-safety-modal"] [class*="font-mono"] {
+    @apply rounded-[1rem] bg-[var(--pickwise-page)] text-[var(--pickwise-text)];
+  }
+
+  [data-streamdown="table-fullscreen"] {
+    @apply bg-[var(--pickwise-page)] text-[var(--pickwise-text)];
+  }
+}

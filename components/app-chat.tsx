@@ -135,6 +135,7 @@ export function AppChat() {
   const [state, dispatch] = useReducer(chatReducer, initialState);
   const abortRef = useRef<AbortController | null>(null);
   const activeThreadRef = useRef<string | null>(null);
+  const messageCount = state.messages.length;
 
   const isStreaming = state.status === "streaming";
 
@@ -144,6 +145,15 @@ export function AppChat() {
     },
     []
   );
+
+  useEffect(() => {
+    window.requestAnimationFrame(() => {
+      window.scrollTo({
+        behavior: "smooth",
+        top: document.documentElement.scrollHeight,
+      });
+    });
+  }, [messageCount, state.statusLabel]);
 
   const appendMessage = useCallback((role: ChatMessage["role"], content: string) => {
     if (!content.trim()) {
@@ -301,9 +311,9 @@ export function AppChat() {
 
   return (
     <>
-      <main className="fixed inset-0 z-0 bg-[var(--pickwise-page)]">
-        <Conversation className="h-full min-h-0">
-          <ConversationContent className="mx-auto w-full max-w-4xl gap-5 px-4 pb-32 pt-24 sm:px-6 sm:pb-36 sm:pt-28">
+      <main className="relative z-0 min-h-screen bg-[var(--pickwise-page)]">
+        <Conversation className="min-h-screen !overflow-visible">
+          <ConversationContent className="mx-auto w-full max-w-3xl gap-5 px-4 pb-32 pt-24 sm:px-0 sm:pb-36 sm:pt-28">
             {state.messages.length === 0 ? (
               <ConversationEmptyState
                 className="min-h-[52vh] text-[var(--pickwise-text)]"
@@ -317,17 +327,23 @@ export function AppChat() {
               />
             ) : (
               state.messages.map((message) => (
-                <Message from={message.role} key={message.id}>
+                <Message
+                  className={message.role === "assistant" ? "max-w-full" : ""}
+                  from={message.role}
+                  key={message.id}
+                >
                   <MessageContent
                     className={cn(
                       "text-[15px] leading-7 shadow-none",
                       message.role === "user"
-                        ? "max-w-[min(34rem,85%)] break-words rounded-[1.35rem] !bg-[var(--pickwise-blue)] px-5 py-3 !text-white"
-                        : "max-w-[48rem] rounded-none !bg-transparent px-0 py-1 text-[var(--pickwise-text)]"
+                        ? "max-w-[min(34rem,85%)] break-words rounded-[1.6rem] !bg-[var(--pickwise-blue)] px-5 py-3 !text-white"
+                        : "w-full max-w-full rounded-none !bg-transparent px-0 py-1 text-[var(--pickwise-text)] !overflow-x-auto"
                     )}
                   >
                     {message.role === "assistant" ? (
-                      <MessageResponse>{message.content}</MessageResponse>
+                      <MessageResponse className="pickwise-message-response max-w-full">
+                        {message.content}
+                      </MessageResponse>
                     ) : (
                       message.content
                     )}
@@ -344,7 +360,7 @@ export function AppChat() {
               </Message>
             ) : null}
           </ConversationContent>
-          <ConversationScrollButton />
+          <ConversationScrollButton className="border-[var(--pickwise-glass-border)] bg-[var(--pickwise-glass)] text-[var(--pickwise-blue)] shadow-[var(--pickwise-glass-shadow)] backdrop-blur-2xl hover:bg-[var(--pickwise-glass-strong)]" />
         </Conversation>
       </main>
       <AppChatInput disabled={isStreaming} onSubmit={handleSubmit} />
