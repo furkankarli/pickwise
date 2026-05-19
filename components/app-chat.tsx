@@ -62,14 +62,16 @@ const initialState: ChatState = {
 };
 
 const nodeLabels: Record<string, string> = {
-  analyze_intent: "İhtiyaç analiz ediliyor",
-  answer_follow_up: "Yanıt hazırlanıyor",
-  ask_human: "Eksik bilgi kontrol ediliyor",
-  extract_info: "Kriterler güncelleniyor",
-  extract_products: "Ürünler değerlendiriliyor",
-  generate_query: "Güncel arama sorgusu oluşturuluyor",
-  plan_follow_up: "Takip mesajı yorumlanıyor",
-  search_follow_up: "Güncel sonuçlar aranıyor",
+  check_guardrails: "Mesajınız inceleniyor",
+  analyze_intent: "İhtiyaçlarınız analiz ediliyor",
+  ask_human: "Eksik bilgiler tespit ediliyor",
+  extract_info: "Kriterleriniz güncelleniyor",
+  generate_query: "Web'de arama yapılıyor",
+  extract_products: "Ürünler sizin için değerlendiriliyor",
+  plan_follow_up: "Yeni talebiniz inceleniyor",
+  search_follow_up: "Güncel sonuçlar için araştırma yapılıyor",
+  answer_follow_up: "Yanıtınız hazırlanıyor",
+  guardrail_warning: "İşlem iptal ediliyor",
 };
 
 const createId = () =>
