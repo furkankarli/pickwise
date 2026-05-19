@@ -11,7 +11,9 @@ from src.tools.scraper_tool import jina_scraper
 from src.tools.search_tool import tavily_search
 
 llm = ChatGoogleGenerativeAI(model="gemini-3.1-flash-lite", google_api_key=settings.google_api_key)
-DEFAULT_MAX_QUESTIONS = 8
+DEFAULT_MAX_QUESTIONS = 6
+MIN_MAX_QUESTIONS = 2
+MAX_QUESTIONS_CEILING = 12
 MAX_RECOMMENDATIONS = 5
 
 
@@ -60,6 +62,14 @@ def language_rule(state: AgentState) -> str:
             "Only switch language if the user explicitly asks you to."
         )
 
+    locale = state.get("locale")
+    if locale and locale != "unknown":
+        return (
+            f"Write all user-facing questions and answers in the primary language of "
+            f"locale {locale}, unless the user's message is clearly in another language. "
+            "Only switch language if the user explicitly asks you to."
+        )
+
     return (
         "Detect the language of the user's first shopping request and use it "
         "for all user-facing questions and answers. Only switch language if "
@@ -73,7 +83,101 @@ def search_language_rule(state: AgentState) -> str:
     if language:
         return f"Write the search query in {language}."
 
-    return "Write the search query in the language of the user's first shopping request."
+    locale = state.get("locale")
+    if locale and locale != "unknown":
+        return (
+            f"Write the search query in the primary language of locale {locale}, "
+            "unless the user's message is clearly in another language."
+        )
+
+    return "Write the search query in the same language as the user's shopping request."
+
+
+def locale_market_rule(state: AgentState) -> str:
+    locale = state.get("locale")
+    if locale and locale != "unknown":
+        return (
+            f"When the user has not specified a market, region, or country in criteria, "
+            f"bias the search toward the market implied by locale {locale} "
+            "(local retailers, currency, and regional product names where relevant)."
+        )
+
+    return (
+        "When the user has not specified a market, region, or country in criteria, "
+        "keep the search query market-neutral."
+    )
+
+
+def search_query_rules(state: AgentState) -> str:
+    return f"""- Return only the search query text, with no explanations or quotes.
+- Target product detail or shop/category pages on e-commerce sites — not blog posts, news, guides, or review roundups.
+- Be specific: include category, brand, model or key specs, and buying intent (e.g. buy, price, shop).
+- Prefer concrete queries like "Samsung Galaxy A55 256GB buy" over vague ones like "best phones 2026".
+- Add freshness terms only when the user asks about current prices, stock, or availability.
+- {search_language_rule(state)}
+- {locale_market_rule(state)}"""
+
+
+NON_PRODUCT_URL_PATTERNS = (
+    "/blog/",
+    "/article/",
+    "/news/",
+    "/haber/",
+    "/rehber/",
+    "/guide/",
+    "/wiki/",
+    "/editorial/",
+    "/magazine/",
+)
+
+
+def is_likely_product_url(url: str) -> bool:
+    lower = url.lower()
+    return not any(pattern in lower for pattern in NON_PRODUCT_URL_PATTERNS)
+
+
+def filter_product_urls(urls: list[str]) -> list[str]:
+    product_urls = [url for url in urls if is_likely_product_url(url)]
+    return product_urls or urls
+
+
+def criteria_rules() -> str:
+    return """Category-specific criteria:
+- Identify the product category first (e.g. smartwatch, laptop, headphones, coffee machine).
+- missing_criteria must only include factors that materially change recommendations for THAT category.
+- Do not use a fixed number of criteria across categories. Simple products often need 2-4 questions; complex ones may need 8-12.
+- Examples (adapt to the actual product — do not copy blindly):
+  - Smartwatch: phone OS/ecosystem, health or sport tracking, battery, GPS vs cellular, band/size, budget
+  - Laptop: primary use, portability vs screen size, OS preference, RAM/storage, dedicated GPU, budget
+  - Headphones: wired vs wireless, ANC, primary use, comfort/fit, budget
+  - Phone: OS ecosystem, camera priority, storage, budget, new vs refurbished
+- Set max_questions to how many of the listed missing_criteria you realistically need answered (min 2, max 12).
+- Order missing_criteria by importance for that specific category.
+- Skip criteria the user already stated or that are obvious from context."""
+
+
+def resolve_max_questions(
+    requested: object,
+    missing_criteria: list[str],
+    *,
+    fallback: int = DEFAULT_MAX_QUESTIONS,
+) -> int:
+    missing_count = len(missing_criteria)
+
+    if isinstance(requested, (int, float)):
+        cap = int(requested)
+    elif isinstance(requested, str) and requested.isdigit():
+        cap = int(requested)
+    elif missing_count:
+        cap = missing_count
+    else:
+        cap = fallback
+
+    cap = max(MIN_MAX_QUESTIONS, min(MAX_QUESTIONS_CEILING, cap))
+    if missing_count:
+        cap = max(cap, min(missing_count, MAX_QUESTIONS_CEILING))
+
+    return cap
 
 
 def extract_urls(value: object) -> list[str]:
@@ -107,20 +211,22 @@ User message:
 
 Respond in JSON format:
 {{
-  "conversation_language": "language name of the user's first shopping request, e.g. Turkish or English",
-  "category": "product category",
+  "conversation_language": "language name of the user's first shopping request, e.g. English or German",
+  "category": "specific product category, e.g. smartwatch or laptop",
   "criteria": {{
     "criterion_name": "criterion value"
   }},
   "missing_criteria": ["missing criterion name"],
+  "max_questions": 6,
   "current_question": "the single most important question to ask the user"
 }}
 
 Rules:
 - Return only JSON.
+- Use locale as a hint for default market and language when the user's message is ambiguous.
 - Determine the category and criteria yourself.
 - If the user has already provided information, do not include it in missing_criteria.
-- Generate a maximum of 8 missing criteria, ordered by importance.
+- {criteria_rules()}
 - current_question should only be related to the first missing criterion.
 - current_question must ask for exactly one missing criterion. Never combine multiple criteria in one question.
 - Do not ask for a criterion that is already present in criteria.
@@ -128,16 +234,17 @@ Rules:
 """
     response = llm.invoke(prompt)
     data = parse_json_response(response.content)
+    missing_criteria = data.get("missing_criteria", [])
 
     return {
         **state,
         "conversation_language": data.get("conversation_language") or state.get("conversation_language"),
         "category": data.get("category"),
         "criteria": data.get("criteria", {}),
-        "missing_criteria": data.get("missing_criteria", []),
+        "missing_criteria": missing_criteria,
         "current_question": data.get("current_question"),
         "question_count": state.get("question_count", 0),
-        "max_questions": state.get("max_questions", DEFAULT_MAX_QUESTIONS),
+        "max_questions": resolve_max_questions(data.get("max_questions"), missing_criteria),
     }
 
 def analyze_state(state: AgentState) -> str:
@@ -149,7 +256,7 @@ def analyze_state(state: AgentState) -> str:
     return "generate_query"
 
 def ask_human(state: AgentState) -> AgentState:
-    question = state.get("current_question") or "Lütfen bu konuda biraz daha detay paylaşır mısınız?"
+    question = state.get("current_question") or "Could you share a bit more detail?"
     answer = interrupt({"question": question})
 
     return {
@@ -186,6 +293,7 @@ Respond in JSON format:
     "criterion_name": "criterion value"
   }},
   "missing_criteria": ["still missing criterion name"],
+  "max_questions": 6,
   "current_question": "the single question to ask if anything is still missing, otherwise null"
 }}
 
@@ -193,7 +301,9 @@ Rules:
 - Return only JSON.
 - Add the information you understood from the user's answer to criteria.
 - Remove completed criteria from missing_criteria.
-- Do not add new missing criteria unless they are essential for making a useful recommendation.
+- {criteria_rules()}
+- Only add new missing_criteria when essential for this product category and not already covered.
+- Update max_questions if the remaining missing_criteria list changes materially.
 - If no criteria are missing, current_question must be null.
 - current_question must ask for exactly one missing criterion. Never combine multiple criteria in one question.
 - Do not ask for a criterion that is already present in criteria.
@@ -203,17 +313,23 @@ Rules:
 
     response = llm.invoke(prompt)
     data = parse_json_response(response.content)
+    missing_criteria = data.get("missing_criteria", [])
 
     return {
         **state,
         "criteria": {**state.get("criteria", {}), **data.get("criteria", {})},
-        "missing_criteria": data.get("missing_criteria", []),
+        "missing_criteria": missing_criteria,
         "current_question": data.get("current_question"),
+        "max_questions": resolve_max_questions(
+            data.get("max_questions"),
+            missing_criteria,
+            fallback=state.get("max_questions", DEFAULT_MAX_QUESTIONS),
+        ),
     }
 
 def generate_query(state: AgentState) -> AgentState:
     prompt = f"""
-Generate an effective Turkish search query to search for products on the internet based on the following shopping criteria.
+Generate a specific web search query to find purchasable products based on the shopping criteria below.
 
 {time_context(state)}
 
@@ -224,11 +340,7 @@ Criteria:
 {json.dumps(state.get("criteria", {}), ensure_ascii=False)}
 
 Rules:
-- Return only the search query.
-- Do not write any explanations.
-- It should be focused on e-commerce and price comparison.
-- Include freshness terms when the user is asking about current prices, stock, stores, or availability.
-- {search_language_rule(state)}
+{search_query_rules(state)}
 """
 
     response = llm.invoke(prompt)
@@ -243,7 +355,7 @@ Rules:
     }
 
 def extract_products(state: AgentState) -> AgentState:
-    urls = extract_urls(state.get("search_results", []))
+    urls = filter_product_urls(extract_urls(state.get("search_results", [])))
 
     scraped_contents = jina_scraper.invoke({"urls": urls[:3]})
 
@@ -263,11 +375,23 @@ Web contents:
 
 Response format:
 - Recommend a maximum of {MAX_RECOMMENDATIONS} products.
-- For each product, provide the name, why it is suitable, and price and link information if available.
-- If a product image URL is available in the scraped content, include it as a markdown image right after the product name, like: ![Product Name](image_url)
+- Use this structure for EACH product (do not put images inside numbered or bulleted list items):
+
+### 1. Product Name
+![Product Name](image_url)
+
+- **Why it fits:** ...
+- **Price:** ...
+- **Link:** ...
+
+- Put the heading and image on their own lines before bullet details.
+- Put each image on its own line with a blank line before and after. Never place images inline with text or inside list items.
 - Only use image URLs that appear in the scraped content. Do not invent or guess image URLs.
+- Omit the image line if no image URL is available in the scraped content.
 - Treat prices, stock, delivery, and seller availability as time-sensitive.
 - Do not state prices you are unsure of as definitive facts.
+- Only link to direct product or shop pages. Do not use blog posts, articles, guides, or review pages as product links.
+- If no direct product URL is available in the scraped content, omit the link rather than linking to editorial content.
 - Keep the answer useful for follow-up comparisons.
 - {language_rule(state)}
 """
@@ -372,7 +496,8 @@ between products already recommended.
 
 Rules:
 - Return only JSON.
-- If fresh_search is selected, write a concise Turkish search query.
+- If fresh_search is selected, write a concise, specific e-commerce search query following the same rules as initial product search.
+- {search_query_rules(state)}
 - Use the browser datetime and timezone when reasoning about words like now, today, current, latest, or this week.
 - Write the reason in the same language as the user's latest message.
 """
@@ -400,7 +525,7 @@ def route_follow_up(state: AgentState) -> str:
 def search_follow_up(state: AgentState) -> AgentState:
     query = state.get("follow_up_search_query") or get_last_user_message(state)
     search_results = tavily_search.invoke({"query": query})
-    urls = extract_urls(search_results)
+    urls = filter_product_urls(extract_urls(search_results))
     scraped_contents = jina_scraper.invoke({"urls": urls[:3]})
 
     return {
@@ -444,6 +569,7 @@ Rules:
 - If the user asks for a comparison, compare the recommended options clearly.
 - If the user changes an important criterion, explain how that changes the recommendation.
 - If fresh search data is available, use it and say when a price or availability should be verified on the seller page.
+- Only link to direct product or shop pages, never to blog posts or editorial articles.
 - Treat words like now, today, current, latest, and this week according to the browser datetime above.
 - If the existing data is not enough for the follow-up, ask one focused question.
 - Do not restart the product discovery flow unless the user clearly asks for a new search.

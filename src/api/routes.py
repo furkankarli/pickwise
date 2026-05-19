@@ -10,6 +10,7 @@ from langgraph.types import Command
 from pydantic import BaseModel, Field
 
 from src.agent.graph import graph
+from src.api.stream_events import SEARCH_NODES, search_payload, status_payload
 
 
 router = APIRouter(prefix="/api")
@@ -98,7 +99,12 @@ def stream_graph(request: ChatStreamRequest) -> Generator[str, None, None]:
                 if not isinstance(update, dict):
                     continue
 
-                yield sse("status", {"node": node_name})
+                yield sse("status", status_payload(node_name))
+
+                if node_name in SEARCH_NODES:
+                    search_event = search_payload(update)
+                    if search_event:
+                        yield sse("search", search_event)
 
                 if node_name == "guardrail_warning":
                     messages = update.get("messages", [])
