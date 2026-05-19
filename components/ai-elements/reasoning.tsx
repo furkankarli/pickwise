@@ -25,6 +25,7 @@ import {
 } from "react";
 import { Streamdown } from "streamdown";
 
+import { pickwiseLinkSafety } from "./external-link-modal";
 import { Shimmer } from "./shimmer";
 
 interface ReasoningContextValue {
@@ -216,7 +217,9 @@ export const ReasoningContent = memo(
       )}
       {...props}
     >
-      <Streamdown plugins={streamdownPlugins}>{children}</Streamdown>
+      <Streamdown linkSafety={pickwiseLinkSafety} plugins={streamdownPlugins}>
+        {children}
+      </Streamdown>
     </CollapsibleContent>
   )
 );

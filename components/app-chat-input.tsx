@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowUp, Sparkles } from "lucide-react";
+import { useKeyboardOffset } from "@/lib/use-keyboard-offset";
 import {
   type FormEvent,
   type KeyboardEvent,
@@ -10,11 +11,17 @@ import {
 
 type AppChatInputProps = {
   disabled?: boolean;
+  onFocus?: () => void;
   onSubmit?: (message: string) => void;
 };
 
-export function AppChatInput({ disabled = false, onSubmit }: AppChatInputProps) {
+export function AppChatInput({
+  disabled = false,
+  onFocus,
+  onSubmit,
+}: AppChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  useKeyboardOffset();
 
   const resizeTextarea = useCallback(() => {
     const textarea = textareaRef.current;
@@ -62,7 +69,7 @@ export function AppChatInput({ disabled = false, onSubmit }: AppChatInputProps) 
   );
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-4 z-50 flex justify-center px-4 sm:bottom-6">
+    <div className="pointer-events-none fixed inset-x-0 bottom-[calc(1rem+var(--keyboard-offset,0px))] z-50 flex justify-center px-4 sm:bottom-[calc(1.5rem+var(--keyboard-offset,0px))]">
       <form
         className="pointer-events-auto flex min-h-16 w-full max-w-3xl items-end gap-3 rounded-[2rem] border border-[var(--pickwise-glass-border)] bg-[var(--pickwise-glass)] px-4 py-3 shadow-[var(--pickwise-glass-shadow)] backdrop-blur-2xl supports-[backdrop-filter]:bg-[var(--pickwise-glass)]"
         onSubmit={handleSubmit}
@@ -73,6 +80,7 @@ export function AppChatInput({ disabled = false, onSubmit }: AppChatInputProps) 
         <textarea
           aria-label="Message"
           className="max-h-40 min-h-10 min-w-0 flex-1 resize-none overflow-y-auto bg-transparent py-2 text-base font-medium leading-6 text-[var(--pickwise-text)] outline-none placeholder:text-[color-mix(in_srgb,var(--pickwise-text)_45%,transparent)]"
+          onFocus={onFocus}
           onKeyDown={handleKeyDown}
           onInput={resizeTextarea}
           placeholder="Ne almak istiyorsun?"

@@ -196,6 +196,11 @@
 }
 
 @layer components {
+  [data-slot="dialog-overlay"] {
+    background-color: rgb(11 27 111 / 0.28);
+    backdrop-filter: blur(8px);
+  }
+
   .pickwise-message-response {
     @apply max-w-full text-[15px] leading-7;
   }

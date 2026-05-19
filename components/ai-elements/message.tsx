@@ -18,9 +18,17 @@ import { math } from "@streamdown/math";
 import { mermaid } from "@streamdown/mermaid";
 import type { UIMessage } from "ai";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
-import type { ComponentProps, HTMLAttributes, ReactElement } from "react";
+import { motion } from "motion/react";
+import type {
+  ComponentProps,
+  HTMLAttributes,
+  ReactElement,
+  ReactNode,
+} from "react";
 import {
   createContext,
+  Fragment,
+  isValidElement,
   memo,
   useCallback,
   useContext,
@@ -28,6 +36,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import { pickwiseLinkSafety } from "@/components/ai-elements/external-link-modal";
 import { Streamdown } from "streamdown";
 
 export type MessageProps = HTMLAttributes<HTMLDivElement> & {
@@ -323,13 +332,65 @@ export type MessageResponseProps = ComponentProps<typeof Streamdown>;
 
 const streamdownPlugins = { cjk, code, math, mermaid };
 
+type MarkdownChildProps = {
+  children?: ReactNode;
+  node?: { tagName?: string };
+  "data-streamdown"?: string;
+  "data-block"?: string;
+};
+
+function paragraphChildren(children: ReactNode): ReactElement[] {
+  return (Array.isArray(children) ? children : [children]).filter(
+    (child): child is ReactElement =>
+      child != null && child !== "" && isValidElement(child)
+  );
+}
+
+/** Matches Streamdown's default MarkdownParagraph — must stay in sync when overriding `p`. */
+function MarkdownParagraph({
+  children,
+  className,
+  node: _node,
+  ...props
+}: ComponentProps<"div"> & { node?: { tagName?: string } }) {
+  const items = paragraphChildren(children);
+
+  if (items.length === 1) {
+    const onlyChild = items[0];
+    const childProps = onlyChild.props as MarkdownChildProps;
+    const tagName = childProps.node?.tagName;
+
+    if (tagName === "img" || childProps["data-streamdown"] === "image-wrapper") {
+      return <>{children}</>;
+    }
+
+    if (tagName === "code" && "data-block" in onlyChild.props) {
+      return <>{children}</>;
+    }
+  }
+
+  return (
+    <motion.div className={className} {...props}>
+      {children}
+    </motion.div>
+  );
+}
+
+const streamdownComponents: NonNullable<
+  ComponentProps<typeof Streamdown>["components"]
+> = {
+  p: MarkdownParagraph,
+};
+
 export const MessageResponse = memo(
-  ({ className, ...props }: MessageResponseProps) => (
+  ({ className, components, linkSafety, ...props }: MessageResponseProps) => (
     <Streamdown
       className={cn(
         "size-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
         className
       )}
+      components={{ ...streamdownComponents, ...components }}
+      linkSafety={linkSafety ?? pickwiseLinkSafety}
       plugins={streamdownPlugins}
       {...props}
     />
