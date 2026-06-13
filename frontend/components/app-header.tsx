@@ -22,7 +22,7 @@ export function AppHeader({ canReset = false, onResetChat }: AppHeaderProps) {
         <div className="flex items-center gap-1">
           {canReset ? (
             <button
-              aria-label="Reset chat"
+              aria-label="Sohbeti sıfırla"
               className="grid size-10 place-items-center rounded-full text-[var(--pickwise-blue)] transition hover:bg-[var(--pickwise-glass-strong)] hover:text-[var(--pickwise-cyan)]"
               onClick={onResetChat}
               type="button"

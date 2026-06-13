@@ -78,10 +78,10 @@ export function ChatChainOfThought({
   const searchCount = activities.filter((activity) => activity.type === "search").length;
 
   const headerLabel = isStreaming
-    ? "Pickwise is researching…"
+    ? "Pickwise araştırıyor..."
     : searchCount > 0
-      ? `Research · ${activities.length} steps`
-      : `${activities.length} steps`;
+      ? `Araştırma · ${activities.length} adım`
+      : `${activities.length} adım`;
 
   return (
     <ChainOfThought
@@ -105,14 +105,14 @@ export function ChatChainOfThought({
               <ChainOfThoughtStep
                 description={
                   activity.resultCount > 0
-                    ? `${activity.resultCount} results`
+                    ? `${activity.resultCount} sonuç`
                     : undefined
                 }
                 icon={Search}
                 key={activity.id}
                 label={
                   <span>
-                    Searched for{" "}
+                    Arandı:{" "}
                     <span className="font-medium">
                       &apos;{truncate(activity.query)}&apos;
                     </span>

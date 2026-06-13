@@ -1,5 +1,6 @@
 import json
 import re
+from functools import lru_cache
 
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -10,11 +11,18 @@ from src.config import settings
 from src.tools.scraper_tool import jina_scraper
 from src.tools.search_tool import tavily_search
 
-llm = ChatGoogleGenerativeAI(model="gemini-3.1-flash-lite", google_api_key=settings.google_api_key)
 DEFAULT_MAX_QUESTIONS = 6
 MIN_MAX_QUESTIONS = 2
 MAX_QUESTIONS_CEILING = 12
 MAX_RECOMMENDATIONS = 5
+
+
+@lru_cache
+def get_llm() -> ChatGoogleGenerativeAI:
+    return ChatGoogleGenerativeAI(
+        model="gemini-3.1-flash-lite",
+        google_api_key=settings.required_google_api_key,
+    )
 
 
 def content_to_text(content: str | list) -> str:
@@ -232,7 +240,7 @@ Rules:
 - Do not ask for a criterion that is already present in criteria.
 - {language_rule(state)}
 """
-    response = llm.invoke(prompt)
+    response = get_llm().invoke(prompt)
     data = parse_json_response(response.content)
     missing_criteria = data.get("missing_criteria", [])
 
@@ -311,7 +319,7 @@ Rules:
 - {language_rule(state)}
 """
 
-    response = llm.invoke(prompt)
+    response = get_llm().invoke(prompt)
     data = parse_json_response(response.content)
     missing_criteria = data.get("missing_criteria", [])
 
@@ -343,7 +351,7 @@ Rules:
 {search_query_rules(state)}
 """
 
-    response = llm.invoke(prompt)
+    response = get_llm().invoke(prompt)
     query = content_to_text(response.content).strip()
 
     search_results = tavily_search.invoke({"query": query})
@@ -356,8 +364,34 @@ Rules:
 
 def extract_products(state: AgentState) -> AgentState:
     urls = filter_product_urls(extract_urls(state.get("search_results", [])))
+    if not urls:
+        answer = (
+            "Bu kriterlere göre doğrudan ürün sayfası bulamadım. "
+            "Bütçe, tercih ettiğin mağaza veya marka gibi bir kriter paylaşırsan "
+            "arama sorgusunu daraltıp tekrar deneyebilirim."
+        )
+        return {
+            **state,
+            "scraped_contents": [],
+            "recommended_products": answer,
+            "final_answer": answer,
+            "messages": [AIMessage(content=answer)],
+        }
 
     scraped_contents = jina_scraper.invoke({"urls": urls[:3]})
+    if not scraped_contents:
+        answer = (
+            "Ürün sayfalarını şu anda okuyamadım. Bulunan kaynakları doğrudan "
+            "kontrol etmeni öneririm; istersen marka, fiyat aralığı veya mağaza "
+            "tercihiyle daha dar bir arama yapabilirim."
+        )
+        return {
+            **state,
+            "scraped_contents": [],
+            "recommended_products": answer,
+            "final_answer": answer,
+            "messages": [AIMessage(content=answer)],
+        }
 
     prompt = f"""
 Select the most suitable products from the following web page contents based on the user's shopping criteria.
@@ -396,7 +430,7 @@ Response format:
 - {language_rule(state)}
 """
 
-    response = llm.invoke(prompt)
+    response = get_llm().invoke(prompt)
     answer = content_to_text(response.content)
 
     return {
@@ -433,7 +467,7 @@ Respond in JSON format:
   "warning_message": "If is_valid is false, write a polite warning message explaining that you are a shopping assistant and cannot help with this request. The warning must be in the same language as the user's message. If is_valid is true, this can be null."
 }}
 """
-    response = llm.invoke(prompt)
+    response = get_llm().invoke(prompt)
     data = parse_json_response(response.content)
 
     return {
@@ -501,7 +535,7 @@ Rules:
 - Use the browser datetime and timezone when reasoning about words like now, today, current, latest, or this week.
 - Write the reason in the same language as the user's latest message.
 """
-    response = llm.invoke(prompt)
+    response = get_llm().invoke(prompt)
     data = parse_json_response(response.content)
 
     if data.get("route") == "fresh_search":
@@ -576,7 +610,7 @@ Rules:
 - Do not add a follow-up question at the end unless it is necessary to complete the user's latest request.
 - {language_rule(state)}
 """
-    response = llm.invoke(prompt)
+    response = get_llm().invoke(prompt)
     answer = content_to_text(response.content)
 
     return {

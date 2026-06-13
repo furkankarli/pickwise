@@ -28,14 +28,14 @@ Bu proje GitHub'a tek monorepo olarak yüklenebilir. En temiz kurulum için Git 
 - Backend: FastAPI, Python 3.11, LangGraph, LangChain
 - Yapay zeka: Google Gemini
 - Arama ve veri toplama: Tavily Search, Jina Reader
-- Paket yönetimi: Bun veya pnpm, uv
+- Paket yönetimi: Bun, uv
 
 ## Başlarken
 
 ### Gereksinimler
 
 - Node.js 20+
-- Bun veya pnpm
+- Bun
 - Python 3.11+
 - uv
 - Google API key
@@ -83,14 +83,6 @@ bun install
 bun dev
 ```
 
-Alternatif olarak pnpm kullanabilirsin:
-
-```bash
-cd frontend
-pnpm install
-pnpm dev
-```
-
 Frontend varsayılan olarak `http://localhost:3000` adresinde çalışır.
 
 ## Ortam Değişkenleri
@@ -114,10 +106,10 @@ Frontend:
 Kök dizinden:
 
 ```bash
-pnpm dev:frontend
-pnpm dev:backend
-pnpm build:frontend
-pnpm lint:frontend
+bun run dev:frontend
+bun run dev:backend
+bun run build:frontend
+bun run lint:frontend
 ```
 
 Alt dizinlerden:
@@ -126,6 +118,9 @@ Alt dizinlerden:
 cd frontend && bun dev
 cd backend && uv run fastapi dev main.py
 ```
+
+> Not: Frontend için varsayılan paket yöneticisi Bun'dır. `frontend/bun.lock`
+> dosyası kaynak kabul edilir; pnpm lock dosyası üretilmemelidir.
 
 ## API
 
@@ -154,5 +149,4 @@ GET /health
 ## Hackathon Notu
 
 Pickwise, BTK Akademi Hackathon 2026 kapsamında alışveriş kararlarını daha hızlı, bilinçli ve güncel veriye dayalı hale getirmek için geliştirildi. Projenin ana fikri, klasik "en iyi ürünler" listeleri yerine kullanıcının gerçek ihtiyacını anlayan ve buna göre canlı araştırma yapan bir asistan deneyimi sunmaktır.
-
 

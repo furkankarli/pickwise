@@ -39,6 +39,20 @@ POST /api/chat/stream
 
 Sohbet akış endpoint'i. Server-Sent Events ile `thread`, `status`, `search`, `interrupt`, `message`, `done` ve `error` olaylarını yayınlar.
 
+`error` olayları güvenli ve stabil biçimde şu alanları döndürür:
+
+```json
+{ "message": "...", "type": "...", "retryable": true }
+```
+
+## Demo Notları
+
+- Sohbet oturumu belleği şu anda `InMemorySaver` ile proses içinde tutulur.
+  Backend yeniden başlarsa mevcut `thread_id` geçmişi kaybolur. Production için
+  SQLite veya Postgres tabanlı kalıcı LangGraph checkpointer kullanılmalıdır.
+- Eksik API key veya provider hataları kullanıcıya ham stack trace olarak
+  döndürülmez; frontend anlaşılır bir hata mesajı gösterir.
+
 ## Monorepo Notu
 
 Bu klasör Pickwise monoreposunun backend paketidir. Genel kurulum ve proje tanıtımı için kök dizindeki `README.md` dosyasına bak.

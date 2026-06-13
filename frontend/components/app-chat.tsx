@@ -47,6 +47,7 @@ type StreamPayload = {
   phase?: string;
   query?: string;
   question?: string;
+  retryable?: boolean;
   result_count?: number;
   sources?: SearchSource[];
   thread_id?: string;
@@ -325,9 +326,12 @@ export function AppChat({ onMessagesChange }: AppChatProps) {
       if (streamEvent.event === "error") {
         const errorMessage =
           streamEvent.data.message ?? "Beklenmeyen bir hata oluştu.";
+        const message = streamEvent.data.retryable
+          ? `${errorMessage} Birazdan tekrar deneyebilirsin.`
+          : errorMessage;
 
-        dispatch({ error: errorMessage, type: "set-error" });
-        appendMessage("assistant", errorMessage);
+        dispatch({ error: message, type: "set-error" });
+        appendMessage("assistant", message);
         dispatch({ type: "clear-pending-activities" });
         dispatch({ status: "error", type: "set-status" });
         return;

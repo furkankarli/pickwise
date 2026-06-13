@@ -4,12 +4,12 @@
   "private": true,
   "description": "BTK Akademi Hackathon 2026 için yapay zeka destekli alışveriş asistanı monoreposu.",
   "scripts": {
-    "dev:frontend": "pnpm --dir frontend dev",
-    "build:frontend": "pnpm --dir frontend build",
-    "lint:frontend": "pnpm --dir frontend lint",
+    "dev:frontend": "bun --cwd frontend run dev",
+    "build:frontend": "bun --cwd frontend run build",
+    "lint:frontend": "bun --cwd frontend run lint",
     "dev:backend": "cd backend && uv run fastapi dev main.py",
     "start:backend": "cd backend && uv run fastapi run main.py",
-    "install:frontend": "pnpm --dir frontend install",
+    "install:frontend": "bun --cwd frontend install",
     "install:backend": "cd backend && uv sync"
   }
 }

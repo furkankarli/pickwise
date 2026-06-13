@@ -8,12 +8,6 @@ Pickwise'in Next.js tabanlı sohbet arayüzü. Kullanıcının mesajlarını bac
 bun dev
 ```
 
-veya:
-
-```bash
-pnpm dev
-```
-
 Arayüz `http://localhost:3000` adresinde açılır.
 
 ## Ortam Değişkeni
@@ -36,3 +30,5 @@ bun lint     # lint kontrolü
 ## Monorepo Notu
 
 Bu klasör Pickwise monoreposunun frontend paketidir. Genel kurulum ve proje tanıtımı için kök dizindeki `README.md` dosyasına bak.
+
+> Bu paket Bun ile kilitlenmiştir. pnpm lock dosyası üretilmemelidir.

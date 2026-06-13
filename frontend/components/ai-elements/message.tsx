@@ -18,7 +18,6 @@ import { math } from "@streamdown/math";
 import { mermaid } from "@streamdown/mermaid";
 import type { UIMessage } from "ai";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
-import { motion } from "motion/react";
 import type {
   ComponentProps,
   HTMLAttributes,
@@ -350,9 +349,10 @@ function paragraphChildren(children: ReactNode): ReactElement[] {
 function MarkdownParagraph({
   children,
   className,
-  node: _node,
+  node,
   ...props
 }: ComponentProps<"div"> & { node?: { tagName?: string } }) {
+  void node;
   const items = paragraphChildren(children);
 
   if (items.length === 1) {
@@ -364,15 +364,15 @@ function MarkdownParagraph({
       return <>{children}</>;
     }
 
-    if (tagName === "code" && "data-block" in onlyChild.props) {
+    if (tagName === "code" && "data-block" in childProps) {
       return <>{children}</>;
     }
   }
 
   return (
-    <motion.div className={className} {...props}>
+    <div className={className} {...props}>
       {children}
-    </motion.div>
+    </div>
   );
 }
 

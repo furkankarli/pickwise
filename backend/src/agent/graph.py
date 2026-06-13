@@ -78,5 +78,7 @@ builder.add_edge("search_follow_up", "answer_follow_up")
 builder.add_edge("answer_follow_up", END)
 builder.add_edge("guardrail_warning", END)
 
+# Hackathon demo default: thread state is process-local and resets on restart.
+# Move this to a durable SQLite/Postgres checkpointer before production use.
 checkpointer = InMemorySaver()
 graph = builder.compile(checkpointer=checkpointer)

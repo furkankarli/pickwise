@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { Check, Copy, ExternalLink } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import type { LinkSafetyModalProps } from "streamdown";
 
 function domainFromUrl(url: string) {
@@ -30,12 +30,6 @@ export function ExternalLinkModal({
 }: LinkSafetyModalProps) {
   const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
-    if (!isOpen) {
-      setCopied(false);
-    }
-  }, [isOpen]);
-
   const handleCopy = useCallback(async () => {
     try {
       await navigator.clipboard.writeText(url);
@@ -46,13 +40,19 @@ export function ExternalLinkModal({
     }
   }, [url]);
 
+  const handleOpenChange = useCallback(
+    (open: boolean) => {
+      if (!open) {
+        setCopied(false);
+        onClose();
+      }
+    },
+    [onClose]
+  );
+
   return (
     <Dialog
-      onOpenChange={(open) => {
-        if (!open) {
-          onClose();
-        }
-      }}
+      onOpenChange={handleOpenChange}
       open={isOpen}
     >
       <DialogContent

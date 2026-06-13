@@ -3,11 +3,13 @@ from langchain_core.tools import tool
 
 from src.config import settings
 
+MAX_SCRAPED_CONTENT_CHARS = 12000
+
 
 @tool
 def jina_scraper(urls: list[str]) -> list[str]:
     """Scrape webpages using Jina."""
-    headers = {"Authorization": f"Bearer {settings.jina_api_key}"}
+    headers = {"Authorization": f"Bearer {settings.required_jina_api_key}"}
     responses = []
 
     for url in urls:
@@ -21,6 +23,6 @@ def jina_scraper(urls: list[str]) -> list[str]:
         except httpx.HTTPError:
             continue
 
-        responses.append(response.text)
+        responses.append(response.text[:MAX_SCRAPED_CONTENT_CHARS])
 
     return responses

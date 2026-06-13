@@ -22,6 +22,8 @@ const getThemeSnapshot = (): Theme => {
     : getSystemTheme();
 };
 
+const getServerThemeSnapshot = (): Theme => "light";
+
 const applyTheme = (theme: Theme) => {
   document.documentElement.classList.toggle("dark", theme === "dark");
   document.documentElement.classList.toggle("light", theme === "light");
@@ -43,10 +45,10 @@ const subscribeToTheme = (callback: () => void) => {
 };
 
 export function ThemeToggle() {
-  const theme = useSyncExternalStore(
+  const theme = useSyncExternalStore<Theme>(
     subscribeToTheme,
     getThemeSnapshot,
-    () => "light"
+    getServerThemeSnapshot
   );
 
   useEffect(() => {
@@ -64,7 +66,7 @@ export function ThemeToggle() {
   return (
     <button
       aria-label={
-        theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
+        theme === "dark" ? "Açık temaya geç" : "Koyu temaya geç"
       }
       className="grid size-10 place-items-center rounded-full text-[var(--pickwise-blue)] transition hover:bg-[var(--pickwise-glass-strong)] hover:text-[var(--pickwise-cyan)]"
       onClick={toggleTheme}

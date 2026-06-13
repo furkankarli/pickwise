@@ -1,4 +1,5 @@
 import json
+import logging
 from collections.abc import Generator
 from typing import Any
 from uuid import uuid4
@@ -11,9 +12,11 @@ from pydantic import BaseModel, Field
 
 from src.agent.graph import graph
 from src.api.stream_events import SEARCH_NODES, search_payload, status_payload
+from src.errors import PickwiseError
 
 
 router = APIRouter(prefix="/api")
+logger = logging.getLogger(__name__)
 
 
 class ChatStreamRequest(BaseModel):
@@ -119,12 +122,23 @@ def stream_graph(request: ChatStreamRequest) -> Generator[str, None, None]:
 
         yield sse("done", {"thread_id": thread_id})
 
-    except Exception as exc:
+    except PickwiseError as exc:
         yield sse(
             "error",
             {
-                "message": str(exc),
+                "message": exc.message,
                 "type": exc.__class__.__name__,
+                "retryable": exc.retryable,
+            },
+        )
+    except Exception:
+        logger.exception("Unhandled chat stream error")
+        yield sse(
+            "error",
+            {
+                "message": "Pickwise yanıtı hazırlanırken beklenmeyen bir hata oluştu.",
+                "type": "InternalServerError",
+                "retryable": True,
             },
         )
 
